@@ -412,8 +412,13 @@ async fn main() -> anyhow::Result<()> {
             post(handlers::resolve_market),
         )
         .route(
-            "/api/blockchain/replay",
+            "/api/v1/blockchain/replay",
             post(handlers::blockchain_replay),
+        )
+        // Deprecated unversioned alias; use /api/v1/blockchain/replay.
+        .route(
+            "/api/blockchain/replay",
+            post(handlers::blockchain_replay_deprecated),
         )
         .route(
             "/api/v1/email/preview/:template_name",

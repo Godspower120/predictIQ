@@ -107,7 +107,8 @@ Quick reference for the most common codes:
 
 The API implements rate limiting to ensure fair usage:
 
-- **Rate Limit:** 1000 requests per minute per API key
+- **Global limit:** 100 requests per 60 seconds per client IP (`GLOBAL_RATE_LIMIT_MAX`, `GLOBAL_RATE_LIMIT_WINDOW_SECS`)
+- **Admin routes:** 30 requests per 60 seconds (`ADMIN_RATE_LIMIT_MAX`, `ADMIN_RATE_LIMIT_WINDOW_SECS`)
 - **Headers:**
   - `X-RateLimit-Limit`: Maximum requests per window
   - `X-RateLimit-Remaining`: Requests remaining in current window

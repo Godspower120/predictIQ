@@ -1408,7 +1408,7 @@ pub async fn blockchain_tx_status(
 
 #[utoipa::path(
     post,
-    path = "/api/blockchain/replay",
+    path = "/api/v1/blockchain/replay",
     tag = "blockchain",
     responses(
         (status = 200, description = "Replay progress"),
@@ -1453,6 +1453,21 @@ pub async fn blockchain_replay(
             Err(ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, message))
         }
     }
+}
+
+/// Deprecated unversioned alias of [`blockchain_replay`].
+pub async fn blockchain_replay_deprecated(
+    state: State<Arc<AppState>>,
+    payload: Json<crate::blockchain::ReplayRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    let response = blockchain_replay(state, payload).await?.into_response();
+    let (mut parts, body) = response.into_parts();
+    parts.headers.insert("Deprecation", axum::http::HeaderValue::from_static("true"));
+    parts.headers.insert(
+        "Link",
+        axum::http::HeaderValue::from_static("</api/v1/blockchain/replay>; rel=\"successor-version\""),
+    );
+    Ok(axum::response::Response::from_parts(parts, body))
 }
 
 pub async fn warm_critical_caches(state: Arc<AppState>) -> anyhow::Result<()> {
@@ -1627,22 +1642,42 @@ pub async fn email_queue_stats(
     get,
     path = "/api/v1/email/queue/dead-letter",
     tag = "email",
+    params(PaginationQuery),
     responses(
-        (status = 200, description = "List of dead-letter email job IDs"),
+        (status = 200, description = "Page of dead-letter email job IDs"),
         (status = 500, description = "Query failed", body = ApiError),
     ),
     security(("api_key" = []))
 )]
 pub async fn email_dead_letter_list(
     State(state): State<Arc<AppState>>,
+    Query(query): Query<PaginationQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let ids = state
+    let limit = query.limit();
+    let offset = query
+        .cursor()
+        .and_then(|c| c.parse::<i64>().ok())
+        .filter(|o| *o >= 0)
+        .unwrap_or(0);
+
+    // Fetch one extra row to learn whether another page exists.
+    let mut ids = state
         .email_queue
-        .list_dead_letter()
+        .list_dead_letter(offset as isize, (limit + 1) as isize)
         .await
         .map_err(into_api_error)?;
+    let has_more = ids.len() as i64 > limit;
+    ids.truncate(limit as usize);
+    let next_cursor = has_more.then(|| (offset + limit).to_string());
 
-    Ok((StatusCode::OK, Json(serde_json::json!({ "jobs": ids, "count": ids.len() }))))
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "jobs": ids,
+            "count": ids.len(),
+            "next_cursor": next_cursor,
+        })),
+    ))
 }
 
 #[utoipa::path(

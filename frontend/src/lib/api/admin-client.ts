@@ -37,7 +37,7 @@ type HttpMethod = "GET" | "POST" | "DELETE";
  */
 const PATHS = {
   resolveMarket: "/api/v1/markets/{market_id}/resolve",
-  blockchainReplay: "/api/blockchain/replay",
+  blockchainReplay: "/api/v1/blockchain/replay",
   content: "/api/v1/content",
   auditLogs: "/api/v1/audit/logs",
 } satisfies Record<string, keyof paths>;

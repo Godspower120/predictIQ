@@ -33,7 +33,7 @@
 | Method | Path | Operation | Auth |
 |--------|------|-----------|------|
 | POST | `/api/v1/markets/{market_id}/resolve` | `resolveMarket` | ApiKeyAuth |
-| POST | `/api/blockchain/replay` | `blockchainReplay` | ApiKeyAuth |
+| POST | `/api/v1/blockchain/replay` | `blockchainReplay` | ApiKeyAuth |
 | GET | `/api/v1/email/preview/{template_name}` | `emailPreview` | ApiKeyAuth |
 | POST | `/api/v1/email/test` | `emailSendTest` | ApiKeyAuth |
 | GET | `/api/v1/email/analytics` | `getEmailAnalytics` | ApiKeyAuth |

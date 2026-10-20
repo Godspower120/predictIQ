@@ -17,7 +17,8 @@
 # How it works:
 #   1. Ensures the schema_migrations tracking table exists (000_ migration).
 #   2. For each *.sql file in migrations/ (sorted by filename):
-#        a. Derives the version from the numeric prefix (e.g. "001").
+#        a. Uses the full filename stem as the version (e.g. "017_create_api_keys"),
+#           so files sharing a numeric prefix are all applied.
 #        b. Skips the file if that version is already recorded.
 #        c. Computes a SHA-256 checksum of the file.
 #        d. Runs the SQL inside a transaction.
@@ -74,8 +75,9 @@ ensure_tracking_table() {
 is_applied() {
     local version="$1"
     local count
+    # Legacy rows stored only the numeric prefix; honour them when the recorded name matches.
     count=$(psql_exec -t -c \
-        "SELECT COUNT(*) FROM schema_migrations WHERE version = '$version';" \
+        "SELECT COUNT(*) FROM schema_migrations WHERE version = '$version' OR (version = '${version%%_*}' AND name = '$version');" \
         2>/dev/null | tr -d '[:space:]')
     [[ "$count" == "1" ]]
 }
@@ -119,19 +121,19 @@ cmd_status() {
     for file in $(ls "$MIGRATIONS_DIR"/*.sql 2>/dev/null | sort); do
         local fname version name
         fname="$(basename "$file")"
-        version="${fname%%_*}"
         name="${fname%.sql}"
+        version="$name"
 
         if is_applied "$version"; then
             local row
             row=$(psql_exec -t -c \
-                "SELECT applied_at, checksum FROM schema_migrations WHERE version = '$version';" \
+                "SELECT applied_at, checksum FROM schema_migrations WHERE version = '$version' OR (version = '${version%%_*}' AND name = '$version');" \
                 | tr -d '[:space:]')
             local applied_at="${row%%|*}"
             local chk="${row##*|}"
-            printf "  %-8s %-50s %-26s %s\n" "$version" "$name" "$applied_at" "${chk:0:12}..."
+            printf "  %-8s %-50s %-26s %s\n" "${version%%_*}" "$name" "$applied_at" "${chk:0:12}..."
         else
-            printf "  %-8s %-50s %-26s %s\n" "$version" "$name" "(pending)" "-"
+            printf "  %-8s %-50s %-26s %s\n" "${version%%_*}" "$name" "(pending)" "-"
             any_pending=true
         fi
     done
@@ -149,7 +151,7 @@ cmd_status() {
 # ---------------------------------------------------------------------------
 cmd_rollback() {
     local target_version="$1"
-    [[ -n "$target_version" ]] || die "--rollback requires a version argument (e.g. --rollback 005)"
+    [[ -n "$target_version" ]] || die "--rollback requires a version argument (e.g. --rollback 005_create_content_management)"
 
     ensure_tracking_table
 
@@ -205,7 +207,7 @@ cmd_run() {
     for file in $files; do
         local fname version
         fname="$(basename "$file")"
-        version="${fname%%_*}"
+        version="${fname%.sql}"
 
         if is_applied "$version"; then
             log "Skipping [$version] — already applied"

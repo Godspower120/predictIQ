@@ -1,7 +1,7 @@
 /**
  * Rate-limit signal bus (#1339).
  *
- * `API_SPEC.md`: 1000 req/min per key; a 429 carries `Retry-After` (seconds). The
+ * `API_SPEC.md`: 100 req/60s per IP (30/min on admin routes); a 429 carries `Retry-After` (seconds). The
  * client reports every 429 here; the UI subscribes to show one shared countdown.
  *
  * Coalescing: while a cooldown window is active, further 429s from parallel requests

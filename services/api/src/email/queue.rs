@@ -341,10 +341,10 @@ impl EmailQueue {
     }
 
     /// List all job IDs currently in the dead-letter set (oldest-failed first).
-    pub async fn list_dead_letter(&self) -> Result<Vec<Uuid>> {
+    pub async fn list_dead_letter(&self, offset: isize, limit: isize) -> Result<Vec<Uuid>> {
         let mut conn = self.cache.get_connection().await?;
         let items: Vec<String> = conn
-            .zrange(EMAIL_DEAD_LETTER_KEY, 0isize, -1isize)
+            .zrange(EMAIL_DEAD_LETTER_KEY, offset, offset + limit - 1)
             .await
             .context("Failed to list dead-letter set")?;
 
