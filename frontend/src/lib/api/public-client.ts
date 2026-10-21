@@ -21,7 +21,6 @@ import {
   newsletterSubscribeSchema,
   emailRequestSchema,
   gdprExportSchema,
-  placeBetSchema,
 } from './requestSchemas';
 import { reportRateLimited } from './rateLimit';
 import type { paths, components } from './schema';
@@ -50,13 +49,6 @@ const PATHS = {
   oracleResult: "/api/v1/blockchain/oracle/{market_id}",
   transactionStatus: "/api/v1/blockchain/tx/{tx_hash}",
 } satisfies Record<string, keyof paths>;
-
-/**
- * `placeBet` is not yet part of services/api/openapi.yaml (see #78), so its
- * path is kept out of the `satisfies keyof paths` check above rather than
- * loosening that check for every other entry.
- */
-const PLACE_BET_PATH = "/api/v1/blockchain/markets/{market_id}/bets";
 
 // Path-parameter encoding lives in ./paths. Re-exported here so existing importers of
 // `fillPath` from './public-client' keep working.
@@ -490,32 +482,6 @@ export const api = {
       cacheTags: [CacheTag.BLOCKCHAIN],
       signal,
     }),
-
-  /**
-   * Submits a bet for the connected wallet. Returns the pending on-chain tx.
-   *
-   * An idempotency key is generated per call so an automatic network retry
-   * can't place the bet twice (#1340). A caller that also needs to survive a
-   * double-click (see #13) can pass its own `idempotencyKey` and hold it
-   * stable until the submission succeeds; editing the amount/outcome and
-   * resubmitting is a new logical submission and should use a new key.
-   */
-  placeBet: (
-    marketId: number | string,
-    body: { wallet: string; outcome: number; amount: string },
-    options: { idempotencyKey?: string; signal?: AbortSignal } = {}
-  ) =>
-    request<{ tx_hash: string; status: string }>(
-      "POST",
-      fillPath(PLACE_BET_PATH, 'market_id', marketId),
-      {
-        body,
-        bodySchema: placeBetSchema,
-        cacheTags: [CacheTag.BLOCKCHAIN, CacheTag.MARKETS],
-        idempotencyKey: options.idempotencyKey ?? true,
-        signal: options.signal,
-      },
-    ),
 
   // Newsletter (public subscription / self-service)
   newsletterSubscribe: (body: { email: string; source?: string }, signal?: AbortSignal) =>

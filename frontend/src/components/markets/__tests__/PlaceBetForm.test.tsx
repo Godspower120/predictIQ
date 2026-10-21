@@ -33,11 +33,14 @@ jest.mock('../../../lib/api/public-client', () => {
     ...actual,
     api: {
       ...actual.api,
-      placeBet: (...args: unknown[]) => mockPlaceBet(...args),
       getTransactionStatus: (...args: unknown[]) => mockGetTransactionStatus(...args),
     },
   };
 });
+
+jest.mock('../../../lib/wallet/soroban', () => ({
+  placeBetOnChain: (...args: unknown[]) => mockPlaceBet(...args),
+}));
 
 const mockFetchNativeBalance = jest.fn();
 const mockFetchAssetBalance = jest.fn();
@@ -188,7 +191,7 @@ describe('PlaceBetForm', () => {
     });
 
     it('clears a previous validation error on a new submit attempt', async () => {
-      mockPlaceBet.mockResolvedValue({ tx_hash: 'abc123', status: 'pending' });
+      mockPlaceBet.mockResolvedValue('abc123');
       renderForm();
 
       const amountInput = screen.getByRole('spinbutton');
@@ -217,9 +220,9 @@ describe('PlaceBetForm', () => {
       setWalletConnected();
     });
 
-    it('calls api.placeBet with correct arguments and shows the tx status', async () => {
+    it('signs and submits placeBetOnChain with correct arguments and shows the tx status', async () => {
       const TX_HASH = 'abcdef1234567890';
-      mockPlaceBet.mockResolvedValue({ tx_hash: TX_HASH, status: 'pending' });
+      mockPlaceBet.mockResolvedValue(TX_HASH);
       const onSubmitted = jest.fn();
 
       renderForm(onSubmitted);
@@ -230,8 +233,14 @@ describe('PlaceBetForm', () => {
 
       await waitFor(() => {
         expect(mockPlaceBet).toHaveBeenCalledWith(
-          MARKET.id,
-          { wallet: WALLET_ADDRESS, outcome: 0, amount: '25' }
+          {
+            bettor: WALLET_ADDRESS,
+            marketId: MARKET.id,
+            outcome: 0,
+            amount: '25',
+            tokenAddress: undefined,
+          },
+          mockWallet.signAndSubmit
         );
       });
 
@@ -243,7 +252,7 @@ describe('PlaceBetForm', () => {
 
     it('calls onSubmitted callback with txHash, outcome, and amount', async () => {
       const TX_HASH = 'deadbeef12345678';
-      mockPlaceBet.mockResolvedValue({ tx_hash: TX_HASH, status: 'pending' });
+      mockPlaceBet.mockResolvedValue(TX_HASH);
       const onSubmitted = jest.fn();
 
       renderForm(onSubmitted);
@@ -265,7 +274,7 @@ describe('PlaceBetForm', () => {
     });
 
     it('works without an onSubmitted prop (optional callback)', async () => {
-      mockPlaceBet.mockResolvedValue({ tx_hash: 'txhash001', status: 'pending' });
+      mockPlaceBet.mockResolvedValue('txhash001');
 
       renderForm(); // no onSubmitted
 

@@ -78,6 +78,7 @@ import {
   isSorobanConfigured,
   resolveSorobanClientConfig,
   submitInvocation,
+  toBaseUnits,
   type SorobanClientConfig,
 } from '../soroban';
 
@@ -326,5 +327,13 @@ describe('invokeContract', () => {
       invokeContract('GSOURCE', { method: 'file_dispute', args: [] }, sign)
     ).rejects.toThrow(/On-chain submission is not configured/);
     expect(sign).not.toHaveBeenCalled();
+  });
+});
+
+describe('toBaseUnits', () => {
+  it('converts decimal amounts to 7-decimal base units', () => {
+    expect(toBaseUnits('10')).toBe(100000000n);
+    expect(toBaseUnits('1.5')).toBe(15000000n);
+    expect(toBaseUnits('0.0000001')).toBe(1n);
   });
 });

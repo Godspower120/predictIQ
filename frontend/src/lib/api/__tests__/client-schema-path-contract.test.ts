@@ -144,7 +144,6 @@ describe('API client paths match schema.d.ts (contract test, #3)', () => {
   // new endpoint with a mistyped or un-schema'd path fails here at PR time (#1342).
   const KNOWN_UNLISTED: ReadonlySet<string> = new Set([
     '/health', // liveness probe, not part of the versioned API surface
-    '/api/v1/blockchain/markets/{market_id}/bets', // placeBet - pending openapi.yaml (#78)
     '/api/v1/newsletter/subscribe',
     '/api/v1/newsletter/confirm',
     '/api/v1/newsletter/unsubscribe',

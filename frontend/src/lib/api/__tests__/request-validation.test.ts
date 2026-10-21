@@ -79,14 +79,6 @@ describe('boundary validation in the client', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('rejects a malformed placeBet body locally, without calling fetch', async () => {
-    await expect(
-      api.placeBet(1, { wallet: 'GABC', outcome: -3, amount: '10' }),
-    ).rejects.toBeInstanceOf(ApiError);
-
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
   it('sends a well-formed body through to the network', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,

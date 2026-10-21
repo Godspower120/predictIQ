@@ -230,6 +230,16 @@ const MIGRATIONS: &[Migration] = &[
         name: "022_add_audit_filter_time_indexes",
         sql: include_str!("../database/migrations/022_add_audit_filter_time_indexes.sql"),
     },
+    Migration {
+        version: "023",
+        name: "023_reconcile_watched_transactions",
+        sql: include_str!("../database/migrations/023_reconcile_watched_transactions.sql"),
+    },
+    Migration {
+        version: "024",
+        name: "024_drop_audit_logs",
+        sql: include_str!("../database/migrations/024_drop_audit_logs.sql"),
+    },
 ];
 
 // ---------------------------------------------------------------------------

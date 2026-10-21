@@ -19,6 +19,7 @@
 // the older `SorobanRpc` alias was removed in v17, so importing `rpc` keeps this
 // module working across the versions sibling repos pin (12.x and 17.x).
 import {
+  Asset,
   BASE_FEE,
   Contract,
   Networks,
@@ -30,13 +31,13 @@ import {
 } from '@stellar/stellar-sdk';
 
 /** The on-chain write entry points this client can invoke. */
-export type ContractWriteMethod = 'file_dispute' | 'cast_vote' | 'claim_winnings';
+export type ContractWriteMethod = 'file_dispute' | 'cast_vote' | 'claim_winnings' | 'place_bet';
 
 /** One positional argument for a contract invocation. */
 export interface ContractArg {
   /** Soroban type to encode the value as. */
-  type: 'address' | 'u64' | 'u32' | 'i128';
-  value: string | number | bigint;
+  type: 'address' | 'u64' | 'u32' | 'i128' | 'void';
+  value?: string | number | bigint;
 }
 
 export interface ContractCallParams {
@@ -79,11 +80,13 @@ export function isSorobanConfigured(): boolean {
 function toScVal(arg: ContractArg): xdr.ScVal {
   switch (arg.type) {
     case 'u64':
-      return nativeToScVal(BigInt(arg.value), { type: 'u64' });
+      return nativeToScVal(BigInt(arg.value as bigint), { type: 'u64' });
     case 'u32':
       return nativeToScVal(Number(arg.value), { type: 'u32' });
     case 'i128':
-      return nativeToScVal(BigInt(arg.value), { type: 'i128' });
+      return nativeToScVal(BigInt(arg.value as bigint), { type: 'i128' });
+    case 'void':
+      return xdr.ScVal.scvVoid();
     case 'address':
       throw new Error('address arguments are encoded in encodeContractArg');
     default:
@@ -207,4 +210,42 @@ export async function invokeContract(
 /** Decode an `xdr.ScVal` result to a native value; exported for tests. */
 export function decodeResult(scVal: xdr.ScVal): unknown {
   return scValToNative(scVal);
+}
+
+/** Convert a decimal amount string to 7-decimal base units (stroops). */
+export function toBaseUnits(amount: string): bigint {
+  const [whole, frac = ''] = amount.split('.');
+  return BigInt(whole || '0') * 10_000_000n + BigInt(frac.padEnd(7, '0').slice(0, 7));
+}
+
+/**
+ * Place a bet by invoking the contract's `place_bet` directly: build -> wallet
+ * sign -> submit. Returns the transaction hash. `tokenAddress` may be 'native'
+ * (resolved to the XLM Stellar Asset Contract on the configured network).
+ */
+export function placeBetOnChain(
+  params: { bettor: string; marketId: number | string; outcome: number; amount: string; tokenAddress?: string },
+  sign: SignTransaction
+): Promise<string> {
+  const passphrase =
+    process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE?.trim() || Networks.TESTNET;
+  const token =
+    !params.tokenAddress || params.tokenAddress === 'native'
+      ? Asset.native().contractId(passphrase)
+      : params.tokenAddress;
+  return invokeContract(
+    params.bettor,
+    {
+      method: 'place_bet',
+      args: [
+        { type: 'address', value: params.bettor },
+        { type: 'u64', value: params.marketId },
+        { type: 'u32', value: params.outcome },
+        { type: 'i128', value: toBaseUnits(params.amount) },
+        { type: 'address', value: token },
+        { type: 'void' },
+      ],
+    },
+    sign
+  );
 }

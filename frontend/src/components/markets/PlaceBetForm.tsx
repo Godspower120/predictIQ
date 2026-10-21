@@ -3,6 +3,7 @@
 import React from 'react';
 import { api, ApiError } from '../../lib/api/public-client';
 import { useWallet, WALLET_NOT_INSTALLED } from '../../lib/wallet/WalletProvider';
+import { placeBetOnChain } from '../../lib/wallet/soroban';
 import { fetchAssetBalance, fetchNativeBalance } from '../../lib/wallet/balance';
 import { SUPPORTED_ASSETS, getSupportedAsset } from '../../lib/assets';
 import { INSUFFICIENT_BALANCE_MESSAGE, isInsufficientBalanceError } from '../../lib/wallet/errors';
@@ -115,14 +116,20 @@ export const PlaceBetForm: React.FC<PlaceBetFormProps> = ({ market, onSubmitted 
     setInsufficientBalance(null);
 
     try {
-      const result = await api.placeBet(market.id, {
-        wallet: wallet.address,
-        outcome: selectedOutcome as number,
-        amount,
-      });
-      setTxHash(result.tx_hash);
-      setTxStatus(result.status);
-      onSubmitted?.({ txHash: result.tx_hash, outcome: selectedOutcome as number, amount });
+      // The wallet signs the contract invocation; the API has no bet route.
+      const hash = await placeBetOnChain(
+        {
+          bettor: wallet.address,
+          marketId: market.id,
+          outcome: selectedOutcome as number,
+          amount,
+          tokenAddress: market.token_address,
+        },
+        wallet.signAndSubmit
+      );
+      setTxHash(hash);
+      setTxStatus('pending');
+      onSubmitted?.({ txHash: hash, outcome: selectedOutcome as number, amount });
     } catch (err) {
       if (err instanceof ApiError && isInsufficientBalanceError(err.details)) {
         // Read the balance fresh at the moment of failure — never the value
@@ -136,7 +143,7 @@ export const PlaceBetForm: React.FC<PlaceBetFormProps> = ({ market, onSubmitted 
         setInsufficientBalance({ required: amount, current: currentBalance, code: asset.code });
       } else {
         const message =
-          err instanceof ApiError ? err.message : 'Failed to submit your bet. Please try again.';
+          err instanceof Error ? err.message : 'Failed to submit your bet. Please try again.';
         setFormError(message);
       }
     } finally {
