@@ -117,33 +117,6 @@ CREATE TABLE IF NOT EXISTS public.analytics_events (
         REFERENCES public.content_management(id) ON DELETE SET NULL
 );
 
--- migration 007
-CREATE TABLE IF NOT EXISTS public.audit_logs (
-    id                       uuid         NOT NULL DEFAULT gen_random_uuid(),
-    action                   varchar(120) NOT NULL,
-    entity_type              varchar(80)  NOT NULL,
-    entity_id                uuid,
-    actor_email              varchar(255),
-    actor_ip                 inet,
-    reason                   text,
-    changes                  jsonb        NOT NULL DEFAULT '{}'::jsonb,
-    created_at               timestamptz  NOT NULL DEFAULT now(),
-    deleted_at               timestamptz,
-    newsletter_subscription_id uuid,
-    contact_submission_id    uuid,
-    waitlist_entry_id        uuid,
-    content_id               uuid,
-    CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
-    CONSTRAINT fk_audit_newsletter FOREIGN KEY (newsletter_subscription_id)
-        REFERENCES public.newsletter_subscribers(id) ON DELETE SET NULL,
-    CONSTRAINT fk_audit_contact    FOREIGN KEY (contact_submission_id)
-        REFERENCES public.contact_form_submissions(id) ON DELETE SET NULL,
-    CONSTRAINT fk_audit_waitlist   FOREIGN KEY (waitlist_entry_id)
-        REFERENCES public.waitlist_entries(id) ON DELETE SET NULL,
-    CONSTRAINT fk_audit_content    FOREIGN KEY (content_id)
-        REFERENCES public.content_management(id) ON DELETE SET NULL
-);
-
 -- migration 008: email tracking tables
 CREATE TABLE IF NOT EXISTS public.email_jobs (
     id              uuid         NOT NULL DEFAULT gen_random_uuid(),
@@ -319,18 +292,6 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at
     ON public.analytics_events (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_properties_gin
     ON public.analytics_events USING gin (properties);
-
--- audit_logs (migration 007)
-CREATE INDEX IF NOT EXISTS idx_audit_logs_action
-    ON public.audit_logs (action);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_entity_type
-    ON public.audit_logs (entity_type);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_entity_id
-    ON public.audit_logs (entity_id);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at
-    ON public.audit_logs (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_deleted_at
-    ON public.audit_logs (deleted_at);
 
 -- email_jobs (migrations 008, 013)
 CREATE INDEX IF NOT EXISTS idx_email_jobs_status

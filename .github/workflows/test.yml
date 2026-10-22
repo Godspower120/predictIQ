@@ -910,6 +910,15 @@ jobs:
           BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── #740: validate every migration has a rollback script ────────────────────
+  validate-migration-registry:
+    name: Validate Migration Registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migrations dir, registry and rollbacks agree
+        run: scripts/check_migrations_registry.sh
+
   validate-migration-rollbacks:
     name: Validate Migration Rollback Scripts
     runs-on: ubuntu-latest
@@ -1510,6 +1519,7 @@ jobs:
       - bundle-size
       - documentation-sync
       - openapi-drift-check
+      - validate-migration-registry
       - validate-migration-rollbacks
       - rollback-idempotency
       - api-criterion-benchmarks
