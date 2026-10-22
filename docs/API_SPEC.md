@@ -40,6 +40,7 @@
 |--------|------|-----------|------|
 | POST | `/api/v1/markets/{market_id}/resolve` | `resolveMarket` | ApiKeyAuth |
 | POST | `/api/v1/markets/{market_id}/cancel` | `cancelMarket` | ApiKeyAuth |
+| POST | `/api/v1/blockchain/replay` | `blockchainReplay` | ApiKeyAuth |
 | POST | `/api/blockchain/replay` | `blockchainReplay` | ApiKeyAuth |
 | GET | `/api/v1/email/preview/{template_name}` | `emailPreview` | ApiKeyAuth |
 | POST | `/api/v1/email/test` | `emailSendTest` | ApiKeyAuth |

@@ -154,7 +154,7 @@ describe('API client paths match schema.d.ts (contract test, #3)', () => {
     '/api/v1/email/test',
     '/api/v1/email/analytics',
     '/api/v1/email/queue/stats',
-    '/api/blockchain/replay',
+    '/api/v1/blockchain/replay',
   ]);
 
   const PLACEHOLDER = new RegExp(String.raw`\$\{[^}]+\}`, 'g');

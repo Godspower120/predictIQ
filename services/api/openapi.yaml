@@ -783,7 +783,7 @@ paths:
         "500":
           $ref: "#/components/responses/ApiError"
 
-  /api/blockchain/replay:
+  /api/v1/blockchain/replay:
     post:
       tags: [blockchain]
       operationId: blockchainReplay
@@ -815,6 +815,14 @@ paths:
       summary: List dead-letter email jobs (admin)
       security:
         - ApiKeyAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's `next_cursor`
+          schema: { type: string }
       responses:
         "200":
           description: Dead-letter job list

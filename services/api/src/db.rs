@@ -973,11 +973,13 @@ impl Database {
     /// List all dead-letter job IDs from PostgreSQL (oldest-failed first).
     ///
     /// Used as a fallback when Redis is unavailable or has been flushed.
-    pub async fn email_list_dead_letter_jobs(&self) -> anyhow::Result<Vec<uuid::Uuid>> {
+    pub async fn email_list_dead_letter_jobs(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<uuid::Uuid>> {
         let rows = self
             .with_timeout(
                 "email_list_dead_letter_jobs",
-                sqlx::query("SELECT id FROM email_dead_letter_jobs ORDER BY failed_at ASC")
+                sqlx::query("SELECT id FROM email_dead_letter_jobs ORDER BY failed_at ASC LIMIT $1 OFFSET $2")
+                    .bind(limit)
+                    .bind(offset)
                     .fetch_all(&self.pool),
             )
             .await

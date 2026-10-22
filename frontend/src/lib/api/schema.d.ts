@@ -371,7 +371,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/blockchain/replay": {
+    "/api/v1/blockchain/replay": {
         parameters: {
             query?: never;
             header?: never;
