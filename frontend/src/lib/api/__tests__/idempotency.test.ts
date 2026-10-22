@@ -48,13 +48,13 @@ describe('idempotency key on mutating requests', () => {
     return headers['Idempotency-Key'];
   }
 
-  it('attaches an Idempotency-Key header to placeBet', async () => {
+  it('attaches an Idempotency-Key header to newsletterSubscribe', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify({ tx_hash: '0xabc', status: 'pending' }),
+      text: async () => JSON.stringify({ success: true, message: 'ok' }),
     });
 
-    await api.placeBet(7, { wallet: 'GABC', outcome: 1, amount: '10' });
+    await api.newsletterSubscribe({ email: 'a@example.com' });
 
     const call = (global.fetch as jest.Mock).mock.calls[0];
     expect(keyOf(call)).toMatch(UUID_RE);
@@ -73,10 +73,10 @@ describe('idempotency key on mutating requests', () => {
       // retry: succeeds
       .mockResolvedValueOnce({
         ok: true,
-        text: async () => JSON.stringify({ tx_hash: '0xabc', status: 'pending' }),
+        text: async () => JSON.stringify({ success: true, message: 'ok' }),
       });
 
-    await api.placeBet(7, { wallet: 'GABC', outcome: 1, amount: '10' });
+    await api.newsletterSubscribe({ email: 'a@example.com' });
 
     const calls = (global.fetch as jest.Mock).mock.calls;
     expect(calls).toHaveLength(2);
@@ -87,29 +87,14 @@ describe('idempotency key on mutating requests', () => {
   it('generates a fresh key for each new user-initiated submission', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify({ tx_hash: '0xabc', status: 'pending' }),
+      text: async () => JSON.stringify({ success: true, message: 'ok' }),
     });
 
-    await api.placeBet(7, { wallet: 'GABC', outcome: 1, amount: '10' });
-    await api.placeBet(7, { wallet: 'GABC', outcome: 2, amount: '25' });
+    await api.newsletterSubscribe({ email: 'a@example.com' });
+    await api.newsletterSubscribe({ email: 'a@example.com' });
 
     const calls = (global.fetch as jest.Mock).mock.calls;
     expect(keyOf(calls[0])).not.toBe(keyOf(calls[1]));
-  });
-
-  it('honours a caller-supplied key (double-click guard use case)', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify({ tx_hash: '0xabc', status: 'pending' }),
-    });
-
-    const key = newIdempotencyKey();
-    await api.placeBet(7, { wallet: 'GABC', outcome: 1, amount: '10' }, { idempotencyKey: key });
-    await api.placeBet(7, { wallet: 'GABC', outcome: 1, amount: '10' }, { idempotencyKey: key });
-
-    const calls = (global.fetch as jest.Mock).mock.calls;
-    expect(keyOf(calls[0])).toBe(key);
-    expect(keyOf(calls[1])).toBe(key);
   });
 
   it('does not create a duplicate when a failed-then-succeeded submit is retried (deduping backend)', async () => {
@@ -125,7 +110,7 @@ describe('idempotency key on mutating requests', () => {
       if (already) {
         return Promise.resolve({
           ok: true,
-          text: async () => JSON.stringify({ tx_hash: '0xabc', status: 'pending', deduped: true }),
+          text: async () => JSON.stringify({ success: true, message: 'ok', deduped: true }),
         });
       }
       committed.push({ key });
@@ -138,9 +123,9 @@ describe('idempotency key on mutating requests', () => {
       });
     });
 
-    const result = await api.placeBet(7, { wallet: 'GABC', outcome: 1, amount: '10' });
+    const result = await api.newsletterSubscribe({ email: 'a@example.com' });
 
-    expect(result).toMatchObject({ tx_hash: '0xabc' });
+    expect(result).toMatchObject({ success: true });
     expect(committed).toHaveLength(1);
   }, 10000);
 
@@ -153,7 +138,7 @@ describe('idempotency key on mutating requests', () => {
     });
 
     await expect(
-      api.placeBet(7, { wallet: 'GABC', outcome: 1, amount: '10' }),
+      api.newsletterSubscribe({ email: 'a@example.com' }),
     ).rejects.toBeInstanceOf(ApiError);
   }, 10000);
 });

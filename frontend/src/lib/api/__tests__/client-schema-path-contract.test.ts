@@ -114,6 +114,12 @@ describe('API client paths match schema.d.ts (contract test, #3)', () => {
       params: { market_id: '42' },
       call: () => adminApi.resolveMarket('42'),
     },
+    {
+      name: 'cancelMarket',
+      template: '/api/v1/markets/{market_id}/cancel',
+      params: { market_id: '42' },
+      call: () => adminApi.cancelMarket('42'),
+    },
   ];
 
   it('every path used by the client is declared in schema.d.ts', () => {
@@ -138,7 +144,6 @@ describe('API client paths match schema.d.ts (contract test, #3)', () => {
   // new endpoint with a mistyped or un-schema'd path fails here at PR time (#1342).
   const KNOWN_UNLISTED: ReadonlySet<string> = new Set([
     '/health', // liveness probe, not part of the versioned API surface
-    '/api/v1/blockchain/markets/{market_id}/bets', // placeBet - pending openapi.yaml (#78)
     '/api/v1/newsletter/subscribe',
     '/api/v1/newsletter/confirm',
     '/api/v1/newsletter/unsubscribe',

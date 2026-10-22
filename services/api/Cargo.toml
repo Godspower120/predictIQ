@@ -31,7 +31,7 @@ chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
 handlebars = "5.1"
 prometheus = "0.13"
-redis = { version = "0.25", features = ["tokio-comp", "connection-manager", "streams"] }
+redis = { version = "0.25", features = ["tokio-comp", "connection-manager", "streams", "tokio-rustls-comp", "tls-rustls-webpki-roots"] }
 deadpool-redis = { version = "0.15", features = ["rt_tokio_1"] }
 async-trait = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
@@ -59,6 +59,7 @@ hmac = "0.12"
 rand = { version = "0.8", features = ["getrandom"] }
 hex = "0.4"
 base64 = "0.22"
+p256 = { version = "0.13", features = ["ecdsa", "pem"] }
 subtle = "2.5"
 secrecy = { version = "0.8", features = ["serde"] }
 ipnet = "2"
