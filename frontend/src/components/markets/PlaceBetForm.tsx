@@ -3,6 +3,7 @@
 import React from 'react';
 import { api, ApiError } from '../../lib/api/public-client';
 import { useWallet, WALLET_NOT_INSTALLED } from '../../lib/wallet/WalletProvider';
+import { parseBetAmount } from '../../lib/wallet/amount';
 import { placeBetOnChain } from '../../lib/wallet/soroban';
 import { fetchAssetBalance, fetchNativeBalance } from '../../lib/wallet/balance';
 import { SUPPORTED_ASSETS, getSupportedAsset } from '../../lib/assets';
@@ -85,8 +86,7 @@ export const PlaceBetForm: React.FC<PlaceBetFormProps> = ({ market, onSubmitted 
 
   const validate = (): string | null => {
     if (selectedOutcome === null) return t('placeBetForm.validationOutcome');
-    const parsed = Number(amount);
-    if (!amount || Number.isNaN(parsed) || parsed <= 0) {
+    if (parseBetAmount(amount) === null) {
       return t('placeBetForm.validationAmount');
     }
     return null;

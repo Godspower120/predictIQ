@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { ApiError } from '@/lib/api/public-client';
+import { describeWriteError } from '@/lib/api/contractErrors';
 import { getEnvConfig } from '@/lib/env';
 import { useWallet } from '@/lib/wallet/WalletProvider';
 import { getSupportedAsset } from '@/lib/assets';
@@ -116,14 +118,24 @@ export default function CreateMarketPage() {
       );
 
       if (!res.ok) {
-        throw new Error(`Failed to create market (${res.status})`);
+        const body = (await res.json().catch(() => ({}))) as {
+          message?: string;
+          code?: string;
+          details?: Record<string, unknown>;
+        };
+        throw new ApiError(
+          body.message ?? `Failed to create market (${res.status})`,
+          res.status,
+          body.code,
+          body.details
+        );
       }
 
       const data: CreateMarketResponse = await res.json();
       setSuccess(true);
       router.push(`/markets/${data.market_id}`);
     } catch (err) {
-      setErrors({ form: err instanceof Error ? err.message : 'Failed to create market.' });
+      setErrors({ form: describeWriteError(err, 'create') });
     } finally {
       setSubmitting(false);
     }

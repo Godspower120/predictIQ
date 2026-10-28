@@ -10,6 +10,8 @@
  * rejected client-side rather than left for the contract call to fail.
  */
 
+import { StrKey } from '@stellar/stellar-sdk';
+
 export type AssetKind = 'soroban_token' | 'classic_asset';
 
 export interface SupportedAsset {
@@ -23,29 +25,73 @@ export interface SupportedAsset {
   label: string;
 }
 
-export const SUPPORTED_ASSETS: SupportedAsset[] = [
-  {
-    id: 'native:XLM',
-    kind: 'classic_asset',
-    code: 'XLM',
-    address: 'native',
-    label: 'XLM (Stellar Lumens)',
-  },
-  {
-    id: 'classic:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
-    kind: 'classic_asset',
-    code: 'USDC',
-    address: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
-    label: 'USDC (Circle, classic asset)',
-  },
-  {
-    id: 'soroban:PIQ:CBQHNAXSI55GX2GN6D67GK7BHVPSLJUGZQEU7WJ5LKR5PNUCGLIMAO4K',
-    kind: 'soroban_token',
-    code: 'PIQ',
-    address: 'CBQHNAXSI55GX2GN6D67GK7BHVPSLJUGZQEU7WJ5LKR5PNUCGLIMAO4K',
-    label: 'PIQ (PredictIQ token)',
-  },
-];
+export type StellarNetwork = 'PUBLIC' | 'TESTNET' | 'FUTURENET';
+
+const XLM: SupportedAsset = {
+  id: 'native:XLM',
+  kind: 'classic_asset',
+  code: 'XLM',
+  address: 'native',
+  label: 'XLM (Stellar Lumens)',
+};
+
+function usdc(issuer: string, label: string): SupportedAsset {
+  return { id: `classic:USDC:${issuer}`, kind: 'classic_asset', code: 'USDC', address: issuer, label };
+}
+
+/** Per-network issuer/contract addresses; ids on one network never match another's. */
+const ASSETS_BY_NETWORK: Record<StellarNetwork, SupportedAsset[]> = {
+  PUBLIC: [
+    XLM,
+    usdc('GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN', 'USDC (Circle, classic asset)'),
+  ],
+  TESTNET: [
+    XLM,
+    usdc('GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5', 'USDC (Circle testnet, classic asset)'),
+  ],
+  FUTURENET: [XLM],
+};
+
+export function getStellarNetwork(): StellarNetwork {
+  const raw = (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'TESTNET').trim().toUpperCase();
+  return raw in ASSETS_BY_NETWORK ? (raw as StellarNetwork) : 'TESTNET';
+}
+
+/** True when `address` is `native`, a valid G... issuer, or a valid C... contract id. */
+export function isValidAssetAddress(address: string): boolean {
+  return (
+    address === 'native' ||
+    StrKey.isValidEd25519PublicKey(address) ||
+    StrKey.isValidContract(address)
+  );
+}
+
+/**
+ * Registry for `network`. The PIQ token contract is deployment-specific, so it
+ * comes from NEXT_PUBLIC_PIQ_TOKEN_ADDRESS. Every address is validated; an
+ * invalid one throws at startup instead of failing later on-chain.
+ */
+export function getSupportedAssets(network: StellarNetwork = getStellarNetwork()): SupportedAsset[] {
+  const assets = [...ASSETS_BY_NETWORK[network]];
+  const piq = process.env.NEXT_PUBLIC_PIQ_TOKEN_ADDRESS?.trim();
+  if (piq) {
+    assets.push({
+      id: `soroban:PIQ:${piq}`,
+      kind: 'soroban_token',
+      code: 'PIQ',
+      address: piq,
+      label: 'PIQ (PredictIQ token)',
+    });
+  }
+  for (const asset of assets) {
+    if (!isValidAssetAddress(asset.address)) {
+      throw new Error(`Invalid address for ${asset.code} on ${network}: ${asset.address}`);
+    }
+  }
+  return assets;
+}
+
+export const SUPPORTED_ASSETS: SupportedAsset[] = getSupportedAssets();
 
 export function isSupportedAsset(id: string): boolean {
   return SUPPORTED_ASSETS.some((asset) => asset.id === id);

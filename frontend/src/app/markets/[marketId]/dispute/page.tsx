@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { useTransaction } from '@/lib/hooks/useTransaction';
 import { describeWriteError } from '@/lib/api/contractErrors';
@@ -47,7 +47,7 @@ async function fetchDisputeStatus(
 }
 
 interface DisputePageProps {
-  params: { marketId: string };
+  params: Promise<{ marketId: string }>;
 }
 
 /**
@@ -62,7 +62,7 @@ interface DisputePageProps {
  * to a nonexistent backend route.
  */
 export default function DisputePage({ params }: DisputePageProps) {
-  const { marketId } = params;
+  const { marketId } = use(params);
   const [reason, setReason] = useState('');
   const wallet = useWallet();
   const tx = useTransaction<{ marketId: string }>();
